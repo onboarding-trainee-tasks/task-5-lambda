@@ -5,54 +5,56 @@ set -e
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 DIST_DIR="${PROJECT_DIR}/dist"
-LAYER_BUILD_DIR="${DIST_DIR}/layer"
-FUNCTION_BUILD_DIR="${DIST_DIR}/function"
+LAYER_DIR="${DIST_DIR}/layer"
+FUNCTION_DIR="${DIST_DIR}/function"
 
-LAYER_ZIP="${DIST_DIR}/requests-layer.zip"
-FUNCTION_ZIP="${DIST_DIR}/lambda-function.zip"
-
-echo "Cleaning old build files..."
+echo "Cleaning old build..."
 
 rm -rf "${DIST_DIR}"
 
-mkdir -p "${LAYER_BUILD_DIR}/python"
-mkdir -p "${FUNCTION_BUILD_DIR}"
+mkdir -p "${LAYER_DIR}/python"
+mkdir -p "${FUNCTION_DIR}"
 
-echo "Installing requests library..."
+
+echo "Installing requests..."
 
 python3 -m pip install \
-  --no-cache-dir \
   --requirement "${PROJECT_DIR}/requirements.txt" \
-  --target "${LAYER_BUILD_DIR}/python"
+  --target "${LAYER_DIR}/python"
 
-echo "Copying Lambda function..."
+
+echo "Preparing Lambda function..."
 
 cp \
   "${PROJECT_DIR}/lambda_function.py" \
-  "${FUNCTION_BUILD_DIR}/lambda_function.py"
+  "${FUNCTION_DIR}/lambda_function.py"
 
-echo "Creating requests Layer ZIP..."
 
-cd "${LAYER_BUILD_DIR}"
+echo "Creating Lambda Layer ZIP..."
+
+cd "${LAYER_DIR}"
 
 zip -qr \
-  "${LAYER_ZIP}" \
+  "${DIST_DIR}/requests-layer.zip" \
   python
+
 
 echo "Creating Lambda function ZIP..."
 
-cd "${FUNCTION_BUILD_DIR}"
+cd "${FUNCTION_DIR}"
 
 zip -q \
-  "${FUNCTION_ZIP}" \
+  "${DIST_DIR}/lambda-function.zip" \
   lambda_function.py
 
-echo "Removing temporary build directories..."
 
-rm -rf "${LAYER_BUILD_DIR}"
-rm -rf "${FUNCTION_BUILD_DIR}"
+echo "Removing temporary directories..."
+
+rm -rf "${LAYER_DIR}"
+rm -rf "${FUNCTION_DIR}"
+
 
 echo
-echo "Build completed."
-echo "Lambda function: ${FUNCTION_ZIP}"
-echo "Lambda Layer:    ${LAYER_ZIP}"
+echo "Build finished."
+echo "Lambda: ${DIST_DIR}/lambda-function.zip"
+echo "Layer:  ${DIST_DIR}/requests-layer.zip"
