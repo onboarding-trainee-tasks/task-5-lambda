@@ -1,0 +1,78 @@
+name: Lambda CI
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Lambda
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+
+      - name: Check Python syntax
+        run: python -m py_compile lambda_function.py
+
+      - name: Build Lambda packages
+        run: bash build.sh
+
+      - name: Check build files
+        run: |
+          test -f dist/lambda-function.zip
+          test -f dist/requests-layer.zip
+
+          ls -lh dist/
+
+      - name: Upload Lambda packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: lambda-packages-${{ github.sha }}
+          path: |
+            dist/lambda-function.zip
+            dist/requests-layer.zip
+          retention-days: 7
+
+  trigger-deploy:
+    name: Trigger Infrastructure Deployment
+
+    if: >
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main'
+
+    needs:
+      - build
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger infrastructure workflow
+        env:
+          GH_TOKEN: ${{ secrets.INFRA_WORKFLOW_TOKEN }}
+          INFRA_REPOSITORY: ${{ vars.INFRA_REPOSITORY }}
+          LAMBDA_REF: ${{ github.sha }}
+        run: |
+          gh workflow run terraform.yml \
+            --repo "${INFRA_REPOSITORY}" \
+            --ref main \
+            -f lambda_ref="${LAMBDA_REF}"
