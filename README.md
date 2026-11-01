@@ -36,6 +36,42 @@ dist/requests-layer.zip
 
 The `dist/` directory is excluded from Git. Rebuild packages before a manual Terraform plan/apply in the infrastructure repository.
 
+
+## Local Testing
+
+Create a Python virtual environment and install dependencies:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt boto3
+```
+
+Run unit tests:
+
+```bash
+python -m unittest discover -s tests -p "test_*.py" -v
+```
+
+The tests cover successful HTTP responses, HTTP failures,
+timeouts, invalid input events, and multiple websites.
+
+HTTP requests and CloudWatch metric publishing are mocked.
+The tests do not require AWS credentials or live AWS resources.
+
+Run the optional local smoke test:
+
+```bash
+python local.py
+```
+
+The smoke test sends a real HTTP request but mocks CloudWatch
+metric publishing.
+
+GitHub Actions runs unit tests before building the Lambda ZIP
+and requests Layer.
+
+
 ## Lambda event
 
 ```json
